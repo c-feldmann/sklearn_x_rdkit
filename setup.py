@@ -8,6 +8,6 @@ setup(
     license='',
     author='Christian Feldmann',
     author_email='cfeldmann@bit.uni-bonn.de',
-    description='Convenient transfer from rdkit features to sklearn input', install_requires=['rdkit', 'scipy',
-                                                                                              'bidict']
+    description='Convenient transfer from rdkit features to sklearn input', install_requires=['>=3.6', 'scipy',
+                                                                                              'bidict', 'numpy']
 )
