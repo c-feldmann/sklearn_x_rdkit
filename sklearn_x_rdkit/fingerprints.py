@@ -158,7 +158,7 @@ class UnfoldedMorganFingerprint(Fingerprint):
 
 
 if __name__ == "__main__":
-    from supporting_functions import construct_check_mol_list
+    from sklearn_x_rdkit.supporting_functions import construct_check_mol_list
     # noinspection SpellCheckingInspection
     test_smiles_list = ["c1ccccc1",
                         "CC(=O)C1CCC2C1(CCC3C2CCC4=CC(=O)CCC34C)C",

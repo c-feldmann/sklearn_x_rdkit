@@ -3,9 +3,9 @@ import unittest
 import numpy as np
 import scipy.sparse as sparse
 
-from fingerprints import UnfoldedMorganFingerprint
-from kernel import tanimoto_from_sparse
-from supporting_functions import construct_check_mol_list
+from sklearn_x_rdkit.fingerprints import UnfoldedMorganFingerprint
+from sklearn_x_rdkit.kernel import tanimoto_from_sparse
+from sklearn_x_rdkit.supporting_functions import construct_check_mol_list
 
 # noinspection SpellCheckingInspection
 smiles_list = ["c1ccccc1",
