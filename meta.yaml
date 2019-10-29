@@ -1,0 +1,22 @@
+package:
+  name: "sklearn_x_rdkit"
+  version: "0.0.1"
+
+source:
+  git_rev: "0.0.1"
+  git_url: "https://github.com/c-feldmann/sklearn_x_rdkit"
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python
+
+test:
+  imports:
+    -
+
+about:
+  home:
