@@ -6,6 +6,8 @@ import rdkit.Chem.AllChem as AllChem
 import scipy.sparse as sparse
 from bidict import bidict
 
+from sklearn_x_rdkit.supporting_functions import construct_check_mol_list
+
 
 class Fingerprint(metaclass=abc.ABCMeta):
     """A metaclass representing all fingerprint subclasses."""
@@ -179,8 +181,31 @@ class UnfoldedMorganFingerprint(Fingerprint):
         self._bit_mapping = bidict(zip(feature_order, range(len(feature_order))))
 
 
+class MACCS(Fingerprint):
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def n_bits(self) -> int:
+        return 166
+
+    def fit(self, mol_obj_list: List[Chem.Mol]) -> None:
+        pass
+
+    def fit_transform(self, mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
+        return self.transform(mol_obj_list)
+
+    def transform(self, mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
+        fingerprints = []
+        for mol_obj in mol_obj_list:
+            fingerprints.append(sparse.csr_matrix(AllChem.GetMACCSKeysFingerprint(mol_obj)))
+        r_matrix = sparse.vstack(fingerprints)
+        # rdkit maccs indexing starts at 1 not at zero, remove first, always empty line
+        assert r_matrix[:, 0].sum() == 0
+        return r_matrix[:, 1:]
+
+
 if __name__ == "__main__":
-    from sklearn_x_rdkit.supporting_functions import construct_check_mol_list
     # noinspection SpellCheckingInspection
     test_smiles_list = ["c1ccccc1",
                         "CC(=O)C1CCC2C1(CCC3C2CCC4=CC(=O)CCC34C)C",
@@ -189,12 +214,18 @@ if __name__ == "__main__":
                         "Cc1cccc(c1NC(=O)c2cnc(s2)Nc3cc(nc(n3)C)N4CCN(CC4)CCO)Cl",
                         "CN(C)c1c2c(ncn1)n(cn2)C3C(C(C(O3)CO)NC(=O)C(Cc4ccc(cc4)OC)N)O",
                         "CC12CCC(CC1CCC3C2CC(C4(C3(CCC4C5=CC(=O)OC5)O)C)O)O",
+
                         ]
     test_mol_obj_list = construct_check_mol_list(test_smiles_list)
+
     ecfp2_1 = UnfoldedMorganFingerprint()
     fp1 = ecfp2_1.fit_transform(test_mol_obj_list)
     print(fp1.shape)
-    fp1_2 = ecfp2_1.fit_transform_smiles(test_smiles_list)
-    ecfp2_2 = FoldedMorganFingerprint()
-    fp2 = ecfp2_2.fit_transform(test_mol_obj_list)
+
+    ecfp2_folded = FoldedMorganFingerprint()
+    fp2 = ecfp2_folded.fit_transform(test_mol_obj_list)
     print(fp2.shape)
+
+    maccs = MACCS()
+    maccs_fp = maccs.fit_transform(test_mol_obj_list)
+    print(maccs_fp.shape)
