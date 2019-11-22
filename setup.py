@@ -7,6 +7,6 @@ setup(
     license="BSD",
     packages=['sklearn_x_rdkit', 'tests'],
     author_email='cfeldmann@bit.uni-bonn.de',
-    description='Convenient transfer from rdkit features to sklearn input',
-    install_requires=['scipy', 'bidict', 'numpy']
+    description='Convenient transfer from rdkit features to sklearn input and a tanimoto-kernel.',
+    install_requires=['scipy', 'bidict', 'numpy', 'rdkit']
 )

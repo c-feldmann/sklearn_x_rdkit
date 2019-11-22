@@ -2,14 +2,75 @@ import numpy as np
 import scipy.sparse as sparse
 
 
-def tanimoto_from_sparse(fp_matrix1: sparse.csr_matrix, fp_matrix2: sparse.csr_matrix) -> np.matrix:
-    """Calculates the Tanimoto-similarity
-    :returns a matrix with a pairwise comparison of vectors in fingerprint 1 with vectors of fingerprint 2
+def tanimoto_from_sparse(matrix_a: sparse.csr_matrix, matrix_b: sparse.csr_matrix) -> np.matrix:
+    """This function calculates the pairwise Tanimoto-similarity between all rows in matrix_a and all rows in matrix_b.
+
+    For two binary fingerprints the Tanimoto-similarity is defined as:
+            sim_T(fp_1, fp_2) = intersection(fp_1, fp_2) / union(fp_1, fp_2)
+            sim_T(fp_1, fp_2) = intersection(fp_1, fp_2) / (sum(fp_1) + sum(fp_2) - intersection(fp_1, fp_2))
+            sim_T(fp_1, fp_2) = fp_1 dot fp_2 / (fp_1 dot fp_1 + fp_2 dot fp_2 - fp_1 dot fp_2)
+
+    This function only works for binary fingerprints and does not consider counted fingerprints.
+    The tanimoto-similarity for two empty fingerprints is not covered as well.
+
+    :returns: a matrix with the shape (n_rows(matrix_a), n_rows(matrix_b)), where all elements are between 0 and 1.
+
+    Explanation:
+        Assuming you want to compare fingerprint-matrix-A (A) with fingerprint-matrix-B (B) (fingerprints are given
+        row-wise).
+
+        Intersection:
+            The intersection for two fingerprints is:
+                intersection(fp_1, fp_2) = fp_1 dot fp_2
+            For pairwise comparing, a matrix is constructed where element(i,j) denotes the intersection of fp_i with
+            fp_j.
+            Here the fingerprints are given in rows in matrices. Therefore the intersection is expressed as:
+                Term_intersection(i,j) = A(row_i) dot B(row_j) for all rows i in A and all rows j in B.
+
+            The dot product of two matrices (O dot P) yields a matrix where the element(i,j) is the dot product of the
+            row i in matrix O and column j in matrix P. Transposing a matrix (.T) turns rows into columns and vice
+            versa.
+            Combining both allows to express the intersection-matrix as:
+                intersection = A dot B.T
+
+        Union:
+            The union of two sets can be expressed as the number of elements in set_1 plus the number of elements in
+            set_2 minus the intersection of set_1 and set_2. Thus the union for two fingerprints is:
+                union(fp_1, fp_2) = sum(fp_1) + sum(fp_2) - intersection(fp_1, fp_2)
+            The matrix for pairwise union is:
+                union(i, j) = sum(A(row_i))  +  sum(B(row_j))  -  A(row_i) dot B(row_j)
+            As you can see the term "sum(A(row_i))" is identical for every element in row i, whereas "sum(B(row_j))" is
+            identical for each element in column j. Therefore both terms are calculated once and projected to the rest
+            of the row, respective column using a vector of ones:
+                union = Term_a + Term_b - Term_intersection
+                Term_a = A.sum_rows dot ones(length = n_rows(B))
+                Term_b = B.sum_rows dot ones(length = n_rows(A)).T
+                Term_intersection = A dot B.T
+            A.sum_rows and B.sum_rows are column vectors with a length equal to the number of rows. These are
+            multiplied with a row-vector of ones with a length equal of the number of rows of the other matrix.
+            Shapes:
+             Term_a:              (n_rows(A), 1)  dot  (1, n_rows(B))
+                                      -> (n_rows(A), n_rows(B))
+
+             Term_b:            [ (n_rows(B), 1)  dot  (1, n_rows(A)) ].T
+                                      -> (n_rows(B), n_rows(A)).T
+                                      -> (n_rows(A), n_rows(B))
+
+             Term_intersection:   (n_rows(A), n_cols(A))  dot  (n_cols(B), n_rows(B))
+                                      -> (n_rows(A), n_rows(B))
+
+             IF AND ONLY IF n_cols(A) == n_cols(B) (both fingerprints have the same number of bits)
+
+        Tanimoto-similarity:
+            Caluclating:
+                tanimoto_matrix = Term_intersection / (Term_a + Term_b - Term_intersection)
     """
-    intersection = fp_matrix1.dot(fp_matrix2.transpose())
-    sum_fp1 = fp_matrix1.sum(axis=1).dot(np.ones((1, fp_matrix2.shape[0])))
-    sum_fp2 = fp_matrix2.sum(axis=1).dot(np.ones((1, fp_matrix1.shape[0]))).transpose()
-    union = sum_fp1 + sum_fp2 - intersection
+    intersection = matrix_a.dot(matrix_b.transpose())
+    term_a = matrix_a.sum(axis=1).dot(np.ones((1, matrix_b.shape[0])))
+    term_b = matrix_b.sum(axis=1).dot(np.ones((1, matrix_a.shape[0]))).transpose()
+    print(matrix_a.sum(axis=1).shape)
+    print(matrix_b.sum(axis=1).shape)
+    union = term_a + term_b - intersection
     return intersection / union
 
 
