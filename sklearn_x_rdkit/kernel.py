@@ -68,8 +68,6 @@ def tanimoto_from_sparse(matrix_a: sparse.csr_matrix, matrix_b: sparse.csr_matri
     intersection = matrix_a.dot(matrix_b.transpose())
     term_a = matrix_a.sum(axis=1).dot(np.ones((1, matrix_b.shape[0])))
     term_b = matrix_b.sum(axis=1).dot(np.ones((1, matrix_a.shape[0]))).transpose()
-    print(matrix_a.sum(axis=1).shape)
-    print(matrix_b.sum(axis=1).shape)
     union = term_a + term_b - intersection
     return intersection / union
 
