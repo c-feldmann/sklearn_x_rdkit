@@ -8,6 +8,7 @@ from bidict import bidict
 
 
 class Fingerprint(metaclass=abc.ABCMeta):
+    """A metaclass representing all fingerprint subclasses."""
     def __init__(self):
         pass
 
@@ -27,6 +28,18 @@ class Fingerprint(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def transform(self, mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
         raise NotImplementedError
+
+    def fit_smiles(self, smiles_list: List[str]):
+        mol_obj_list = construct_check_mol_list(smiles_list)
+        self.fit(mol_obj_list)
+
+    def fit_transform_smiles(self, smiles_list: List[str]):
+        mol_obj_list = construct_check_mol_list(smiles_list)
+        return self.fit_transform(mol_obj_list)
+
+    def transform_smiles(self, smiles_list: List[str]):
+        mol_obj_list = construct_check_mol_list(smiles_list)
+        return self.transform(mol_obj_list)
 
 
 class FoldedMorganFingerprint(Fingerprint):
@@ -66,7 +79,7 @@ class FoldedMorganFingerprint(Fingerprint):
 
 
 class UnfoldedMorganFingerprint(Fingerprint):
-    """Transforms smiles-strings into unfolded bit-vectors based on Morgan-fingerprints [1].
+    """Transforms smiles-strings or molecular objects into unfolded bit-vectors based on Morgan-fingerprints [1].
     Features are mapped to bits based on the amount of molecules they occur in.
 
     Long version:
@@ -80,35 +93,38 @@ class UnfoldedMorganFingerprint(Fingerprint):
             [1] http://rdkit.org/docs/GettingStartedInPython.html#morgan-fingerprints-circular-fingerprints
     """
 
-    def __init__(self, counted: bool = False, diameter: int = 2, use_features: bool = False):
+    def __init__(self, counted: bool = False, radius: int = 2, use_features: bool = False, ignore_unknown=False):
         """ Initializes the class
 
         :param counted: if False, bits are binary: on if present in molecule, of if not present
                         if True, bits are positive integers and give the occurrence of their respective features in the
                         molecule
-        :param diameter: diameter of the circular fingerprint [1]
-        :param use_features:
+        :param radius: radius of the circular fingerprint [1]. Radius of 2 corresponds to ECFP4 (radius 2 -> diameter 4)
+        :param use_features: Instead of encoding atoms, features are encoded in the fingerprint. [2]
 
         References:
             [1] http://rdkit.org/docs/GettingStartedInPython.html#morgan-fingerprints-circular-fingerprints
+            [2] http://rdkit.org/docs/GettingStartedInPython.html#feature-definitions-used-in-the-morgan-fingerprints
         """
         super().__init__()
         self._bit_mapping = None
-        if isinstance(diameter, int) and diameter >= 0:
-            self._diameter = diameter
+        if isinstance(radius, int) and radius >= 0:
+            self._radius = radius
         else:
-            raise ValueError(f"Not a positive integer: {diameter}")
+            raise ValueError(f"Not a positive integer: {radius}")
 
         self._counted = counted
         self.use_features = use_features
+        self.ignore_unkown = ignore_unknown
 
     @property
-    def counted(self):
+    def counted(self) -> bool:
+        """Returns the bool value for enabling counted fingerprint."""
         return self._counted
 
     @property
-    def diameter(self):
-        return self._diameter
+    def radius(self):
+        return self._radius
 
     @property
     def n_bits(self):
@@ -122,7 +138,7 @@ class UnfoldedMorganFingerprint(Fingerprint):
         self._create_mapping(mol_iterator)
 
     def _gen_features(self, mol_obj: Chem.Mol) -> Dict[int, int]:
-        return AllChem.GetMorganFingerprint(mol_obj, self.diameter, useFeatures=self.use_features).GetNonzeroElements()
+        return AllChem.GetMorganFingerprint(mol_obj, self.radius, useFeatures=self.use_features).GetNonzeroElements()
 
     def fit_transform(self, mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
         mol_fp_list = [self._gen_features(mol_obj) for mol_obj in mol_obj_list]
@@ -132,6 +148,12 @@ class UnfoldedMorganFingerprint(Fingerprint):
     def transform(self,  mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
         mol_iterator = (self._gen_features(mol_obj) for mol_obj in mol_obj_list)
         return self._transform(mol_iterator)
+
+    def _map_features(self, mol_fp) -> List[int]:
+        if self.ignore_unkown:
+            return [self._bit_mapping[feature] for feature in mol_fp.keys() if feature in self._bit_mapping[feature]]
+        else:
+            return [self._bit_mapping[feature] for feature in mol_fp.keys()]
 
     def _transform(self, mol_fp_list: Union[Iterator[Dict[int, int]], List[Dict[int, int]]]) -> sparse.csr_matrix:
         data = []
@@ -146,7 +168,7 @@ class UnfoldedMorganFingerprint(Fingerprint):
         else:
             for i, mol_fp in enumerate(mol_fp_list):
                 data.extend([1] * len(mol_fp))
-                rows.extend([self._bit_mapping[feature] for feature in mol_fp.keys()])
+                rows.extend(self._map_features(mol_fp))
                 cols.extend([i] * len(mol_fp))
         return sparse.csr_matrix((data, (cols, rows)), shape=(len(set(cols)), self.n_bits))
 
@@ -172,6 +194,7 @@ if __name__ == "__main__":
     ecfp2_1 = UnfoldedMorganFingerprint()
     fp1 = ecfp2_1.fit_transform(test_mol_obj_list)
     print(fp1.shape)
+    fp1_2 = ecfp2_1.fit_transform_smiles(test_smiles_list)
     ecfp2_2 = FoldedMorganFingerprint()
     fp2 = ecfp2_2.fit_transform(test_mol_obj_list)
     print(fp2.shape)
