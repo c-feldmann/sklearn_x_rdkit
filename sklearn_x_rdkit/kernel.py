@@ -3,7 +3,7 @@ import scipy.sparse as sparse
 
 
 def tanimoto_from_sparse(matrix_a: sparse.csr_matrix, matrix_b: sparse.csr_matrix) -> np.matrix:
-    """This function calculates the pairwise Tanimoto-similarity between all rows in matrix_a and all rows in matrix_b.
+    """This function calculates the pairwise Tanimoto-similarity between rows in matrix_a and rows in matrix_b.
 
     For two binary fingerprints the Tanimoto-similarity is defined as:
             sim_T(fp_1, fp_2) = intersection(fp_1, fp_2) / union(fp_1, fp_2)
@@ -25,13 +25,13 @@ def tanimoto_from_sparse(matrix_a: sparse.csr_matrix, matrix_b: sparse.csr_matri
             For pairwise comparing, a matrix is constructed where element(i,j) denotes the intersection of fp_i with
             fp_j.
             Here the fingerprints are given in rows in matrices. Therefore the intersection is expressed as:
-                Term_intersection(i,j) = A(row_i) dot B(row_j) for all rows i in A and all rows j in B.
+                intersection(i,j) = A(row_i) dot B(row_j) for all rows i in A and all rows j in B.
 
             The dot product of two matrices (O dot P) yields a matrix where the element(i,j) is the dot product of the
             row i in matrix O and column j in matrix P. Transposing a matrix (.T) turns rows into columns and vice
             versa.
             Combining both allows to express the intersection-matrix as:
-                intersection = A dot B.T
+                Term_intersection = A dot B.T
 
         Union:
             The union of two sets can be expressed as the number of elements in set_1 plus the number of elements in
@@ -62,7 +62,7 @@ def tanimoto_from_sparse(matrix_a: sparse.csr_matrix, matrix_b: sparse.csr_matri
              IF AND ONLY IF n_cols(A) == n_cols(B) (both fingerprints have the same number of bits)
 
         Tanimoto-similarity:
-            Caluclating:
+            Calculating:
                 tanimoto_matrix = Term_intersection / (Term_a + Term_b - Term_intersection)
     """
     intersection = matrix_a.dot(matrix_b.transpose())
