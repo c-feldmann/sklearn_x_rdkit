@@ -1,6 +1,7 @@
 import abc
 from typing import *
 
+import numpy as np
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 import scipy.sparse as sparse
@@ -140,6 +141,7 @@ class UnfoldedMorganFingerprint(Fingerprint):
         self._create_mapping(mol_iterator)
 
     def _gen_features(self, mol_obj: Chem.Mol) -> Dict[int, int]:
+        """:returns the a dict, where the key is the feature-hash and the value is the count."""
         return AllChem.GetMorganFingerprint(mol_obj, self.radius, useFeatures=self.use_features).GetNonzeroElements()
 
     def fit_transform(self, mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
@@ -163,10 +165,10 @@ class UnfoldedMorganFingerprint(Fingerprint):
         cols = []
         if self._counted:
             for i, mol_fp in enumerate(mol_fp_list):
-                for feature, count in mol_fp.items():
-                    data.append(count)
-                    rows.append(self._bit_mapping[feature])
-                    cols.append(i)
+                features, counts = zip(*mol_fp.items())
+                data.append(counts)
+                rows.append(self._map_features(features))
+                cols.append(i)
         else:
             for i, mol_fp in enumerate(mol_fp_list):
                 data.extend([1] * len(mol_fp))
@@ -176,8 +178,10 @@ class UnfoldedMorganFingerprint(Fingerprint):
 
     def _create_mapping(self, molecule_features: Union[Iterator[Dict[int, int]], List[Dict[int, int]]]):
         unraveled_features = [f for f_list in molecule_features for f in f_list.keys()]
+        feature_hash, count = np.unique(unraveled_features, return_counts=True)
+        feature_hash_dict = dict(zip(feature_hash, count))
         unique_features = set(unraveled_features)
-        feature_order = sorted(unique_features, key=lambda f: unraveled_features.count(f), reverse=True)
+        feature_order = sorted(unique_features, key=lambda f: feature_hash_dict[f], reverse=True)
         self._bit_mapping = bidict(zip(feature_order, range(len(feature_order))))
 
 
