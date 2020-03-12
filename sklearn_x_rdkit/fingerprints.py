@@ -103,7 +103,7 @@ class UnfoldedMorganFingerprint(Fingerprint):
                         if True, bits are positive integers and give the occurrence of their respective features in the
                         molecule
         :param radius: radius of the circular fingerprint [1]. Radius of 2 corresponds to ECFP4 (radius 2 -> diameter 4)
-        :param use_features: Instead of encoding atoms, features are encoded in the fingerprint. [2]
+        :param use_features: Instead of atoms, features are encoded in the fingerprint. [2]
 
         References:
             [1] http://rdkit.org/docs/GettingStartedInPython.html#morgan-fingerprints-circular-fingerprints
@@ -163,18 +163,21 @@ class UnfoldedMorganFingerprint(Fingerprint):
         data = []
         rows = []
         cols = []
+        n_col = 0
         if self._counted:
             for i, mol_fp in enumerate(mol_fp_list):
                 features, counts = zip(*mol_fp.items())
                 data.append(counts)
                 rows.append(self._map_features(features))
                 cols.append(i)
+                n_col += 1
         else:
             for i, mol_fp in enumerate(mol_fp_list):
                 data.extend([1] * len(mol_fp))
                 rows.extend(self._map_features(mol_fp))
                 cols.extend([i] * len(mol_fp))
-        return sparse.csr_matrix((data, (cols, rows)), shape=(len(set(cols)), self.n_bits))
+                n_col += 1
+        return sparse.csr_matrix((data, (cols, rows)), shape=(n_col, self.n_bits))
 
     def _create_mapping(self, molecule_features: Union[Iterator[Dict[int, int]], List[Dict[int, int]]]):
         unraveled_features = [f for f_list in molecule_features for f in f_list.keys()]
