@@ -7,7 +7,7 @@ import rdkit.Chem.AllChem as AllChem
 import scipy.sparse as sparse
 from bidict import bidict
 
-from .supporting_functions import construct_check_mol_list
+from sklearn_x_rdkit.supporting_functions import construct_check_mol_list
 
 
 class Fingerprint(metaclass=abc.ABCMeta):
