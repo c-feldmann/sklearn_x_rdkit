@@ -99,7 +99,7 @@ class UnfoldedMorganFingerprint(Fingerprint):
     def __init__(self, counted: bool = False, radius: int = 2, use_features: bool = False, ignore_unknown=False):
         """ Initializes the class
 
-        :param counted: if False, bits are binary: on if present in molecule, of if not present
+        :param counted: if False, bits are binary: on if present in molecule, off if not present
                         if True, bits are positive integers and give the occurrence of their respective features in the
                         molecule
         :param radius: radius of the circular fingerprint [1]. Radius of 2 corresponds to ECFP4 (radius 2 -> diameter 4)
@@ -110,7 +110,7 @@ class UnfoldedMorganFingerprint(Fingerprint):
             [2] http://rdkit.org/docs/GettingStartedInPython.html#feature-definitions-used-in-the-morgan-fingerprints
         """
         super().__init__()
-        self._bit_mapping = None
+        self._bit_mapping: Optional[bidict] = None
         if isinstance(radius, int) and radius >= 0:
             self._radius = radius
         else:
@@ -135,6 +135,10 @@ class UnfoldedMorganFingerprint(Fingerprint):
             return len(self._bit_mapping)
         else:
             raise ValueError("Length not determined yet!")
+
+    @property
+    def bit_mapping(self) -> bidict:
+        return self._bit_mapping.copy()
 
     def fit(self, mol_obj_list: List[Chem.Mol]) -> None:
         mol_iterator = (self._gen_features(mol_obj) for mol_obj in mol_obj_list)
