@@ -148,12 +148,20 @@ class UnfoldedMorganFingerprint(Fingerprint):
         """:returns the a dict, where the key is the feature-hash and the value is the count."""
         return AllChem.GetMorganFingerprint(mol_obj, self.radius, useFeatures=self.use_features).GetNonzeroElements()
 
+    def explain_rdmol(self, mol_obj: Chem.Mol) -> dict:
+        bi = {}
+        _ = AllChem.GetMorganFingerprint(mol_obj, self.radius, useFeatures=self.use_features, bitInfo=bi)
+        return bi
+
+    def explain_smiles(self, smiles: str) -> dict:
+        return self.explain_rdmol(Chem.MolFromSmiles(smiles))
+
     def fit_transform(self, mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
         mol_fp_list = [self._gen_features(mol_obj) for mol_obj in mol_obj_list]
         self._create_mapping(mol_fp_list)
         return self._transform(mol_fp_list)
 
-    def transform(self,  mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
+    def transform(self, mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
         mol_iterator = (self._gen_features(mol_obj) for mol_obj in mol_obj_list)
         return self._transform(mol_iterator)
 
