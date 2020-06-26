@@ -73,7 +73,8 @@ class FoldedMorganFingerprint(Fingerprint):
     def transform(self, mol_obj_list: List[Chem.Mol]) -> sparse.csr_matrix:
         fingerprints = []
         for mol in mol_obj_list:
-            fp = AllChem.GetMorganFingerprintAsBitVect(mol, self.diameter, useFeatures=self._use_features)
+            fp = AllChem.GetMorganFingerprintAsBitVect(mol, self.diameter, useFeatures=self._use_features,
+                                                       nBits=self._n_bits)
             fingerprints.append(sparse.csr_matrix(fp))
         return sparse.vstack(fingerprints)
 
