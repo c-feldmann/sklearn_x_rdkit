@@ -11,7 +11,7 @@ from sklearn_x_rdkit.supporting_functions import construct_check_mol_list
 
 
 class Fingerprint(metaclass=abc.ABCMeta):
-    """A metaclass representing all fingerprint subclasses."""
+    """A Baseclass representing all fingerprint subclasses."""
     def __init__(self):
         pass
 

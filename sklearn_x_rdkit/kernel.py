@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sparse
 
 
-def tanimoto_from_sparse(matrix_a: sparse.csr_matrix, matrix_b: sparse.csr_matrix) -> np.matrix:
+def tanimoto_from_sparse(matrix_a: sparse.csr_matrix, matrix_b: sparse.csr_matrix) -> np.ndarray:
     """This function calculates the pairwise Tanimoto-similarity between rows in matrix_a and rows in matrix_b.
 
     For two binary fingerprints the Tanimoto-similarity is defined as:
@@ -65,10 +65,10 @@ def tanimoto_from_sparse(matrix_a: sparse.csr_matrix, matrix_b: sparse.csr_matri
             Calculating:
                 tanimoto_matrix = Term_intersection / (Term_a + Term_b - Term_intersection)
     """
-    intersection = matrix_a.dot(matrix_b.transpose())
-    term_a = matrix_a.sum(axis=1).dot(np.ones((1, matrix_b.shape[0])))
-    term_b = matrix_b.sum(axis=1).dot(np.ones((1, matrix_a.shape[0]))).transpose()
-    union = term_a + term_b - intersection
+    intersection = matrix_a.dot(matrix_b.transpose()).toarray()
+    feature_sum_a = np.array(matrix_a.sum(axis=1))
+    feature_sum_b = np.array(matrix_b.sum(axis=1))
+    union = feature_sum_a + feature_sum_b.T - intersection
     return intersection / union
 
 
