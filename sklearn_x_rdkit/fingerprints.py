@@ -1,5 +1,6 @@
 import abc
 from typing import *
+from collections import defaultdict
 
 import numpy as np
 import rdkit.Chem as Chem
@@ -10,8 +11,16 @@ from bidict import bidict
 from sklearn_x_rdkit.supporting_functions import construct_check_mol_list
 
 
+class AtomEnvironment(NamedTuple):
+    """"A Class to store environment-information for morgan-fingerprint features"""
+    central_atom: int  # Atom index of central atom
+    radius: int  # bond-radius of environment
+    environment_atoms: Set[int]  # set of all atoms within radius
+
+
 class Fingerprint(metaclass=abc.ABCMeta):
-    """A Baseclass representing all fingerprint subclasses."""
+    """A metaclass representing all fingerprint subclasses."""
+
     def __init__(self):
         pass
 
@@ -153,6 +162,28 @@ class UnfoldedMorganFingerprint(Fingerprint):
         bi = {}
         _ = AllChem.GetMorganFingerprint(mol_obj, self.radius, useFeatures=self.use_features, bitInfo=bi)
         return bi
+
+    def bit2atom_maping(self, mol_obj) -> Dict[int, List[AtomEnvironment]]:
+        hash2atom_dict = self.explain_rdmol(mol_obj)
+        bit2atom_dict = {self.bit_mapping[hash_val]: atom_env for hash_val, atom_env in hash2atom_dict.items()}
+
+        result_dict = defaultdict(list)
+
+        # Iterating over all present bits and respective matches
+        for bit, matches in bit2atom_dict.items():  # type: int, tuple
+            for central_atom, radius in matches:  # type: int, int
+                if radius == 0:
+                    result_dict[bit].append(AtomEnvironment(central_atom, radius, {central_atom}))
+                    continue
+                env = Chem.FindAtomEnvironmentOfRadiusN(mol_obj, radius, central_atom)
+                amap = {}
+                _ = Chem.PathToSubmol(mol_obj, env, atomMap=amap)
+                env_atoms = amap.keys()
+                assert central_atom in env_atoms
+                result_dict[bit].append(AtomEnvironment(central_atom, radius, set(env_atoms)))
+
+        # Transforming defaultdict to dict
+        return {k: v for k, v in result_dict.items()}
 
     def explain_smiles(self, smiles: str) -> dict:
         return self.explain_rdmol(Chem.MolFromSmiles(smiles))
